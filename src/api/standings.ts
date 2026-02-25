@@ -60,7 +60,12 @@ export async function fetchStandings(): Promise<StandingsData> {
 
   for (const conf of conferences) {
     const name: string = conf.name?.toLowerCase() ?? "";
-    const teams = mapEntries(conf.standings.entries);
+    const entries = [...conf.standings.entries].sort((a: any, b: any) => {
+      const pctA = getStat(a.stats, "winPercent")?.value ?? 0;
+      const pctB = getStat(b.stats, "winPercent")?.value ?? 0;
+      return pctB - pctA;
+    });
+    const teams = mapEntries(entries);
     if (name.includes("east")) {
       east = teams;
     } else {
