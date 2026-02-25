@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { render, Box, Text, useApp } from "ink";
+import { render, Box, Text, useApp, useInput } from "ink";
 import { Scoreboard } from "./components/Scoreboard.js";
 import { BoxScore } from "./components/BoxScore.js";
 import { Standings } from "./components/Standings.js";
@@ -22,6 +22,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
   const [dateOffset, setDateOffset] = useState(0);
+  const [searchMode, setSearchMode] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { lastUpdated, tick, refresh, autoRefreshEnabled, toggleAutoRefresh } =
     useAutoRefresh(30000);
@@ -100,17 +102,51 @@ function App() {
     }
   }, [view, tick, dateOffset, selectedGameId, loadScoreboard, loadStandings, loadBoxScore]);
 
+  const filteredGames = searchQuery
+    ? games.filter((g) => {
+        const q = searchQuery.toLowerCase();
+        return (
+          g.homeTeam.teamTricode.toLowerCase().includes(q) ||
+          g.homeTeam.teamName.toLowerCase().includes(q) ||
+          g.awayTeam.teamTricode.toLowerCase().includes(q) ||
+          g.awayTeam.teamName.toLowerCase().includes(q)
+        );
+      })
+    : games;
+
   const listLength =
-    view === "scoreboard" ? games.length : 0;
+    view === "scoreboard" ? filteredGames.length : 0;
+
+  // Search mode input handler
+  useInput(
+    (input, key) => {
+      if (key.escape) {
+        setSearchMode(false);
+        setSearchQuery("");
+        setSelectedIndex(0);
+      } else if (key.return) {
+        setSearchMode(false);
+      } else if (key.backspace || key.delete) {
+        setSearchQuery((q) => q.slice(0, -1));
+        setSelectedIndex(0);
+      } else if (input && !key.ctrl && !key.meta) {
+        setSearchQuery((q) => q + input);
+        setSelectedIndex(0);
+      }
+    },
+    { isActive: searchMode },
+  );
 
   const { selectedIndex, setSelectedIndex } = useVim({
     listLength,
-    isActive: true,
+    isActive: !searchMode,
     onSelect: (index) => {
-      if (view === "scoreboard" && games[index]) {
-        const game = games[index];
+      if (view === "scoreboard" && filteredGames[index]) {
+        const game = filteredGames[index];
         if (game.gameStatus >= 2) {
           setSelectedGameId(game.gameId);
+          setSearchMode(false);
+          setSearchQuery("");
           setView("boxscore");
         }
       }
@@ -144,6 +180,12 @@ function App() {
       setSelectedIndex(0);
       setView("scoreboard");
     },
+    onSearch: () => {
+      if (view === "scoreboard") {
+        setSearchMode(true);
+        setSearchQuery("");
+      }
+    },
     onRefresh: refresh,
     onToggleAutoRefresh: toggleAutoRefresh,
     onToggleHelp: () => setShowHelp((v) => !v),
@@ -176,6 +218,7 @@ function App() {
           <Text>  <Text bold>h</Text>       Go back</Text>
           <Text>  <Text bold>H/L</Text>    Previous/next day</Text>
           <Text>  <Text bold>t</Text>      {"Today's scores"}</Text>
+          <Text>  <Text bold>/</Text>      Search games (Esc to clear)</Text>
           <Text>  <Text bold>1</Text>       Scores view</Text>
           <Text>  <Text bold>2</Text>       Standings view</Text>
           <Text>  <Text bold>3</Text>       Toggle auto-refresh</Text>
@@ -192,12 +235,24 @@ function App() {
           <Text color="red">{error}</Text>
         </Box>
       ) : view === "scoreboard" ? (
-        <Scoreboard games={games} selectedIndex={selectedIndex} dateLabel={getDisplayDate(dateOffset)} />
+        <Scoreboard games={filteredGames} selectedIndex={selectedIndex} dateLabel={getDisplayDate(dateOffset)} />
       ) : view === "boxscore" && boxScore ? (
         <BoxScore data={boxScore} />
       ) : view === "standings" && standings ? (
         <Standings data={standings} />
       ) : null}
+
+      {/* Search bar */}
+      {(searchMode || searchQuery) && (
+        <Box paddingX={1}>
+          <Text color="yellow">/</Text>
+          <Text>{searchQuery}</Text>
+          {searchMode && <Text color="yellow">_</Text>}
+          {!searchMode && searchQuery && (
+            <Text dimColor>  (Esc to clear)</Text>
+          )}
+        </Box>
+      )}
 
       {/* Status bar */}
       <Box paddingX={1} marginTop={1}>

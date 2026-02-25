@@ -12,6 +12,7 @@ interface UseVimOptions {
   onPrevDay?: () => void;
   onNextDay?: () => void;
   onToday?: () => void;
+  onSearch?: () => void;
   onViewChange?: (view: string) => void;
   isActive?: boolean;
 }
@@ -27,6 +28,7 @@ export function useVim({
   onPrevDay,
   onNextDay,
   onToday,
+  onSearch,
   onViewChange,
   isActive = true,
 }: UseVimOptions) {
@@ -87,6 +89,11 @@ export function useVim({
       // Help
       if (input === "?") {
         onToggleHelp?.();
+      }
+
+      // Search
+      if (input === "/") {
+        onSearch?.();
       }
 
       // Quit
