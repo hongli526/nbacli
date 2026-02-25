@@ -28,7 +28,7 @@ function mapEntries(entries: any[]): TeamStanding[] {
 
     const wins = getStat(stats, "wins")?.value ?? 0;
     const losses = getStat(stats, "losses")?.value ?? 0;
-    const winPct = getStat(stats, "winPercent")?.value ?? 0;
+    const winPctStat = getStat(stats, "winPercent");
     const gb = getStat(stats, "gamesBehind")?.displayValue ?? "-";
     const streakStat = getStat(stats, "streak");
     const streak = streakStat?.displayValue ?? "-";
@@ -40,7 +40,7 @@ function mapEntries(entries: any[]): TeamStanding[] {
       teamName: team.shortDisplayName ?? team.displayName ?? "",
       wins,
       losses,
-      pct: winPct.toFixed(3),
+      pct: winPctStat?.displayValue ?? (winPctStat?.value ?? 0).toFixed(3),
       gamesBehind: gb,
       streak,
       lastTen,
