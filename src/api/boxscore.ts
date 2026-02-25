@@ -8,7 +8,9 @@ export interface PlayerStats {
   ast: number;
   stl: number;
   blk: number;
-  fgPct: string;
+  fg: string;
+  threes: string;
+  ft: string;
   plusMinus: number;
 }
 
@@ -51,10 +53,9 @@ export async function fetchBoxScore(gameId: string): Promise<BoxScoreData> {
           ast: s.assists ?? 0,
           stl: s.steals ?? 0,
           blk: s.blocks ?? 0,
-          fgPct:
-            s.fieldGoalsAttempted > 0
-              ? ((s.fieldGoalsMade / s.fieldGoalsAttempted) * 100).toFixed(1)
-              : "0.0",
+          fg: `${s.fieldGoalsMade ?? 0}-${s.fieldGoalsAttempted ?? 0}`,
+          threes: `${s.threePointersMade ?? 0}-${s.threePointersAttempted ?? 0}`,
+          ft: `${s.freeThrowsMade ?? 0}-${s.freeThrowsAttempted ?? 0}`,
           plusMinus: s.plusMinusPoints ?? 0,
         };
       });

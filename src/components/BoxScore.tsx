@@ -15,6 +15,7 @@ function PlayerTable({
 }) {
   const nameW = 22;
   const colW = 6;
+  const shotW = 7;
 
   return (
     <Box flexDirection="column">
@@ -30,11 +31,13 @@ function PlayerTable({
           {"AST".padStart(colW)}
           {"STL".padStart(colW)}
           {"BLK".padStart(colW)}
-          {"FG%".padStart(colW)}
+          {"FG".padStart(shotW)}
+          {"3PT".padStart(shotW)}
+          {"FT".padStart(shotW)}
           {"+/-".padStart(colW)}
         </Text>
       </Box>
-      <Text dimColor>{"─".repeat(nameW + colW * 8)}</Text>
+      <Text dimColor>{"─".repeat(nameW + colW * 7 + shotW * 3)}</Text>
       {players.map((p, i) => (
         <Box key={i}>
           <Text>
@@ -45,7 +48,9 @@ function PlayerTable({
             {String(p.ast).padStart(colW)}
             {String(p.stl).padStart(colW)}
             {String(p.blk).padStart(colW)}
-            {p.fgPct.padStart(colW)}
+            {p.fg.padStart(shotW)}
+            {p.threes.padStart(shotW)}
+            {p.ft.padStart(shotW)}
             {(p.plusMinus >= 0 ? `+${p.plusMinus}` : String(p.plusMinus)).padStart(colW)}
           </Text>
         </Box>
