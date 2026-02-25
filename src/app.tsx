@@ -14,6 +14,7 @@ type View = "scoreboard" | "boxscore" | "standings";
 function App() {
   const { exit } = useApp();
   const [view, setView] = useState<View>("scoreboard");
+  const [showHelp, setShowHelp] = useState(false);
   const [games, setGames] = useState<Game[]>([]);
   const [boxScore, setBoxScore] = useState<BoxScoreData | null>(null);
   const [standings, setStandings] = useState<StandingsData | null>(null);
@@ -21,7 +22,8 @@ function App() {
   const [error, setError] = useState<string | null>(null);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
 
-  const { lastUpdated, tick, refresh } = useAutoRefresh(30000);
+  const { lastUpdated, tick, refresh, autoRefreshEnabled, toggleAutoRefresh } =
+    useAutoRefresh(30000);
 
   const loadScoreboard = useCallback(async () => {
     try {
@@ -101,6 +103,8 @@ function App() {
       }
     },
     onRefresh: refresh,
+    onToggleAutoRefresh: toggleAutoRefresh,
+    onToggleHelp: () => setShowHelp((v) => !v),
     onQuit: () => exit(),
   });
 
@@ -116,6 +120,7 @@ function App() {
         <Text dimColor>
           {"  "}[<Text color={view === "scoreboard" ? "cyan" : undefined}>1:Scores</Text>]
           {"  "}[<Text color={view === "standings" ? "cyan" : undefined}>2:Standings</Text>]
+          {"  "}[3:Auto-refresh <Text color={autoRefreshEnabled ? "green" : "red"}>{autoRefreshEnabled ? "ON" : "OFF"}</Text>]
         </Text>
       </Box>
 
@@ -136,11 +141,26 @@ function App() {
         <Standings data={standings} />
       ) : null}
 
+      {/* Help panel */}
+      {showHelp && (
+        <Box flexDirection="column" paddingX={1} marginTop={1}>
+          <Text bold underline>Keybindings</Text>
+          <Text>  <Text bold>j/k</Text>    Navigate up/down</Text>
+          <Text>  <Text bold>Enter/l</Text> Select / drill in</Text>
+          <Text>  <Text bold>h</Text>       Go back</Text>
+          <Text>  <Text bold>1</Text>       Scores view</Text>
+          <Text>  <Text bold>2</Text>       Standings view</Text>
+          <Text>  <Text bold>3</Text>       Toggle auto-refresh</Text>
+          <Text>  <Text bold>r</Text>       Manual refresh</Text>
+          <Text>  <Text bold>?</Text>       Toggle this help</Text>
+          <Text>  <Text bold>q</Text>       Quit</Text>
+        </Box>
+      )}
+
       {/* Status bar */}
-      <Box paddingX={1} marginTop={1}>
+      <Box paddingX={1} marginTop={showHelp ? 0 : 1}>
         <Text dimColor>
-          j/k:navigate  Enter/l:select  h:back  1:scores  2:standings  r:refresh  q:quit
-          {"  "}| Updated: {timeStr}
+          ?:help | Updated: {timeStr}
         </Text>
       </Box>
     </Box>

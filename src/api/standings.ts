@@ -17,51 +17,54 @@ export interface StandingsData {
   west: TeamStanding[];
 }
 
-const STATS_HEADERS = {
-  Referer: "https://www.nba.com/",
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)",
-  Accept: "application/json",
-};
+function getStat(stats: any[], name: string): any {
+  return stats.find((s: any) => s.name === name);
+}
+
+function mapEntries(entries: any[]): TeamStanding[] {
+  return entries.map((entry: any, idx: number) => {
+    const team = entry.team;
+    const stats = entry.stats;
+
+    const wins = getStat(stats, "wins")?.value ?? 0;
+    const losses = getStat(stats, "losses")?.value ?? 0;
+    const winPct = getStat(stats, "winPercent")?.value ?? 0;
+    const gb = getStat(stats, "gamesBehind")?.displayValue ?? "-";
+    const streakStat = getStat(stats, "streak");
+    const streak = streakStat?.displayValue ?? "-";
+    const lastTen = getStat(stats, "Last Ten Games")?.displayValue ?? "-";
+
+    return {
+      rank: idx + 1,
+      teamTricode: team.abbreviation ?? "",
+      teamName: team.shortDisplayName ?? team.displayName ?? "",
+      wins,
+      losses,
+      pct: winPct.toFixed(3),
+      gamesBehind: gb,
+      streak,
+      lastTen,
+    };
+  });
+}
 
 export async function fetchStandings(): Promise<StandingsData> {
   const url =
-    "https://cdn.nba.com/static/json/liveData/standings/standings_00.json";
+    "https://site.api.espn.com/apis/v2/sports/basketball/nba/standings";
 
-  const { data } = await axios.get(url, { headers: STATS_HEADERS });
+  const { data } = await axios.get(url);
 
-  const teams = data.standings.entries;
+  const conferences = data.children;
+  let east: TeamStanding[] = [];
+  let west: TeamStanding[] = [];
 
-  const mapTeam = (t: any, idx: number): TeamStanding => ({
-    rank: idx + 1,
-    teamTricode: t.team?.triCode ?? t.teamTriCode ?? "",
-    teamName: t.team?.name ?? t.teamName ?? "",
-    wins: t.stats?.wins?.value ?? t.wins ?? 0,
-    losses: t.stats?.losses?.value ?? t.losses ?? 0,
-    pct: (t.stats?.winPct?.value ?? t.winPct ?? 0).toFixed(3),
-    gamesBehind: String(t.stats?.gamesBehind?.value ?? t.gamesBehind ?? "-"),
-    streak: t.stats?.streak?.value
-      ? `${t.stats.streak.value > 0 ? "W" : "L"}${Math.abs(t.stats.streak.value)}`
-      : (t.streak ?? "-"),
-    lastTen: t.stats?.last10Record
-      ? `${t.stats.last10Record.wins}-${t.stats.last10Record.losses}`
-      : (t.lastTen ?? "-"),
-  });
-
-  // The NBA API returns standings grouped; we need to split by conference
-  const east: TeamStanding[] = [];
-  const west: TeamStanding[] = [];
-
-  let eastIdx = 0;
-  let westIdx = 0;
-
-  for (const t of teams) {
-    const conf =
-      t.team?.conference ?? t.teamConference ?? t.conference ?? "";
-    if (conf.toLowerCase().includes("east")) {
-      east.push(mapTeam(t, eastIdx++));
+  for (const conf of conferences) {
+    const name: string = conf.name?.toLowerCase() ?? "";
+    const teams = mapEntries(conf.standings.entries);
+    if (name.includes("east")) {
+      east = teams;
     } else {
-      west.push(mapTeam(t, westIdx++));
+      west = teams;
     }
   }
 

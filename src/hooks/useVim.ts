@@ -7,6 +7,8 @@ interface UseVimOptions {
   onBack?: () => void;
   onQuit?: () => void;
   onRefresh?: () => void;
+  onToggleAutoRefresh?: () => void;
+  onToggleHelp?: () => void;
   onViewChange?: (view: string) => void;
   isActive?: boolean;
 }
@@ -17,6 +19,8 @@ export function useVim({
   onBack,
   onQuit,
   onRefresh,
+  onToggleAutoRefresh,
+  onToggleHelp,
   onViewChange,
   isActive = true,
 }: UseVimOptions) {
@@ -55,9 +59,19 @@ export function useVim({
         onViewChange?.("standings");
       }
 
+      // Toggle auto-refresh
+      if (input === "3") {
+        onToggleAutoRefresh?.();
+      }
+
       // Refresh
       if (input === "r") {
         onRefresh?.();
+      }
+
+      // Help
+      if (input === "?") {
+        onToggleHelp?.();
       }
 
       // Quit
