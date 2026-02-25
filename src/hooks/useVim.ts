@@ -11,6 +11,7 @@ interface UseVimOptions {
   onToggleHelp?: () => void;
   onPrevDay?: () => void;
   onNextDay?: () => void;
+  onToday?: () => void;
   onViewChange?: (view: string) => void;
   isActive?: boolean;
 }
@@ -25,6 +26,7 @@ export function useVim({
   onToggleHelp,
   onPrevDay,
   onNextDay,
+  onToday,
   onViewChange,
   isActive = true,
 }: UseVimOptions) {
@@ -61,6 +63,8 @@ export function useVim({
         onPrevDay?.();
       } else if (input === "L") {
         onNextDay?.();
+      } else if (input === "t") {
+        onToday?.();
       }
 
       // View switching

@@ -139,6 +139,11 @@ function App() {
         setSelectedIndex(0);
       }
     },
+    onToday: () => {
+      setDateOffset(0);
+      setSelectedIndex(0);
+      setView("scoreboard");
+    },
     onRefresh: refresh,
     onToggleAutoRefresh: toggleAutoRefresh,
     onToggleHelp: () => setShowHelp((v) => !v),
@@ -170,6 +175,7 @@ function App() {
           <Text>  <Text bold>Enter/l</Text> Select / drill in</Text>
           <Text>  <Text bold>h</Text>       Go back</Text>
           <Text>  <Text bold>H/L</Text>    Previous/next day</Text>
+          <Text>  <Text bold>t</Text>      {"Today's scores"}</Text>
           <Text>  <Text bold>1</Text>       Scores view</Text>
           <Text>  <Text bold>2</Text>       Standings view</Text>
           <Text>  <Text bold>3</Text>       Toggle auto-refresh</Text>
