@@ -121,6 +121,7 @@ function App() {
           {"  "}[<Text color={view === "scoreboard" ? "cyan" : undefined}>1:Scores</Text>]
           {"  "}[<Text color={view === "standings" ? "cyan" : undefined}>2:Standings</Text>]
           {"  "}[3:Auto-refresh <Text color={autoRefreshEnabled ? "green" : "red"}>{autoRefreshEnabled ? "ON" : "OFF"}</Text>]
+          {"  "}[?:Help]
         </Text>
       </Box>
 
@@ -159,9 +160,7 @@ function App() {
 
       {/* Status bar */}
       <Box paddingX={1} marginTop={showHelp ? 0 : 1}>
-        <Text dimColor>
-          ?:help | Updated: {timeStr}
-        </Text>
+        <Text dimColor>Updated: {timeStr}</Text>
       </Box>
     </Box>
   );
