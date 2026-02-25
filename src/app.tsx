@@ -126,7 +126,20 @@ function App() {
       </Box>
 
       {/* Content */}
-      {loading ? (
+      {showHelp ? (
+        <Box flexDirection="column" paddingX={1} paddingY={1}>
+          <Text bold underline>Keybindings</Text>
+          <Text>  <Text bold>j/k</Text>    Navigate up/down</Text>
+          <Text>  <Text bold>Enter/l</Text> Select / drill in</Text>
+          <Text>  <Text bold>h</Text>       Go back</Text>
+          <Text>  <Text bold>1</Text>       Scores view</Text>
+          <Text>  <Text bold>2</Text>       Standings view</Text>
+          <Text>  <Text bold>3</Text>       Toggle auto-refresh</Text>
+          <Text>  <Text bold>r</Text>       Manual refresh</Text>
+          <Text>  <Text bold>?</Text>       Toggle this help</Text>
+          <Text>  <Text bold>q</Text>       Quit</Text>
+        </Box>
+      ) : loading ? (
         <Box padding={1}>
           <Text color="yellow">Loading...</Text>
         </Box>
@@ -142,24 +155,8 @@ function App() {
         <Standings data={standings} />
       ) : null}
 
-      {/* Help panel */}
-      {showHelp && (
-        <Box flexDirection="column" paddingX={1} marginTop={1}>
-          <Text bold underline>Keybindings</Text>
-          <Text>  <Text bold>j/k</Text>    Navigate up/down</Text>
-          <Text>  <Text bold>Enter/l</Text> Select / drill in</Text>
-          <Text>  <Text bold>h</Text>       Go back</Text>
-          <Text>  <Text bold>1</Text>       Scores view</Text>
-          <Text>  <Text bold>2</Text>       Standings view</Text>
-          <Text>  <Text bold>3</Text>       Toggle auto-refresh</Text>
-          <Text>  <Text bold>r</Text>       Manual refresh</Text>
-          <Text>  <Text bold>?</Text>       Toggle this help</Text>
-          <Text>  <Text bold>q</Text>       Quit</Text>
-        </Box>
-      )}
-
       {/* Status bar */}
-      <Box paddingX={1} marginTop={showHelp ? 0 : 1}>
+      <Box paddingX={1} marginTop={1}>
         <Text dimColor>Updated: {timeStr}</Text>
       </Box>
     </Box>
