@@ -26,27 +26,35 @@ function App() {
   const { lastUpdated, tick, refresh, autoRefreshEnabled, toggleAutoRefresh } =
     useAutoRefresh(30000);
 
-  const getDateStr = useCallback((offset: number) => {
-    const d = new Date();
-    d.setDate(d.getDate() + offset);
-    return d.toISOString().slice(0, 10).replace(/-/g, "");
+  // NBA dates are in US Eastern time
+  const getETDate = useCallback((offset: number) => {
+    const now = new Date();
+    const et = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    et.setDate(et.getDate() + offset);
+    return et;
   }, []);
+
+  const getDateStr = useCallback((offset: number) => {
+    const et = getETDate(offset);
+    const y = et.getFullYear();
+    const m = String(et.getMonth() + 1).padStart(2, "0");
+    const d = String(et.getDate()).padStart(2, "0");
+    return `${y}${m}${d}`;
+  }, [getETDate]);
 
   const getDisplayDate = useCallback((offset: number) => {
     if (offset === 0) return "Today";
     if (offset === -1) return "Yesterday";
     if (offset === 1) return "Tomorrow";
-    const d = new Date();
-    d.setDate(d.getDate() + offset);
-    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
-  }, []);
+    const et = getETDate(offset);
+    return et.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  }, [getETDate]);
 
   const loadScoreboard = useCallback(async (offset: number) => {
     try {
       setError(null);
       setLoading(true);
-      const date = offset === 0 ? undefined : getDateStr(offset);
-      const data = await fetchScoreboard(date);
+      const data = await fetchScoreboard(getDateStr(offset));
       setGames(data);
     } catch (e: any) {
       setError(`Failed to load scoreboard: ${e.message}`);
