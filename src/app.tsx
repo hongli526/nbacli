@@ -21,22 +21,39 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedGameId, setSelectedGameId] = useState<string | null>(null);
+  const [dateOffset, setDateOffset] = useState(0);
 
   const { lastUpdated, tick, refresh, autoRefreshEnabled, toggleAutoRefresh } =
     useAutoRefresh(30000);
 
-  const loadScoreboard = useCallback(async () => {
+  const getDateStr = useCallback((offset: number) => {
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().slice(0, 10).replace(/-/g, "");
+  }, []);
+
+  const getDisplayDate = useCallback((offset: number) => {
+    if (offset === 0) return "Today";
+    if (offset === -1) return "Yesterday";
+    if (offset === 1) return "Tomorrow";
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  }, []);
+
+  const loadScoreboard = useCallback(async (offset: number) => {
     try {
       setError(null);
       setLoading(true);
-      const data = await fetchScoreboard();
+      const date = offset === 0 ? undefined : getDateStr(offset);
+      const data = await fetchScoreboard(date);
       setGames(data);
     } catch (e: any) {
       setError(`Failed to load scoreboard: ${e.message}`);
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [getDateStr]);
 
   const loadBoxScore = useCallback(async (gameId: string) => {
     try {
@@ -67,18 +84,18 @@ function App() {
   // Load data based on current view
   useEffect(() => {
     if (view === "scoreboard") {
-      loadScoreboard();
+      loadScoreboard(dateOffset);
     } else if (view === "standings") {
       loadStandings();
     } else if (view === "boxscore" && selectedGameId) {
       loadBoxScore(selectedGameId);
     }
-  }, [view, tick, selectedGameId, loadScoreboard, loadStandings, loadBoxScore]);
+  }, [view, tick, dateOffset, selectedGameId, loadScoreboard, loadStandings, loadBoxScore]);
 
   const listLength =
     view === "scoreboard" ? games.length : 0;
 
-  const { selectedIndex } = useVim({
+  const { selectedIndex, setSelectedIndex } = useVim({
     listLength,
     isActive: true,
     onSelect: (index) => {
@@ -100,6 +117,18 @@ function App() {
     onViewChange: (v) => {
       if (v === "scoreboard" || v === "standings") {
         setView(v);
+      }
+    },
+    onPrevDay: () => {
+      if (view === "scoreboard") {
+        setDateOffset((d) => d - 1);
+        setSelectedIndex(0);
+      }
+    },
+    onNextDay: () => {
+      if (view === "scoreboard") {
+        setDateOffset((d) => d + 1);
+        setSelectedIndex(0);
       }
     },
     onRefresh: refresh,
@@ -132,6 +161,7 @@ function App() {
           <Text>  <Text bold>j/k</Text>    Navigate up/down</Text>
           <Text>  <Text bold>Enter/l</Text> Select / drill in</Text>
           <Text>  <Text bold>h</Text>       Go back</Text>
+          <Text>  <Text bold>H/L</Text>    Previous/next day</Text>
           <Text>  <Text bold>1</Text>       Scores view</Text>
           <Text>  <Text bold>2</Text>       Standings view</Text>
           <Text>  <Text bold>3</Text>       Toggle auto-refresh</Text>
@@ -148,7 +178,7 @@ function App() {
           <Text color="red">{error}</Text>
         </Box>
       ) : view === "scoreboard" ? (
-        <Scoreboard games={games} selectedIndex={selectedIndex} />
+        <Scoreboard games={games} selectedIndex={selectedIndex} dateLabel={getDisplayDate(dateOffset)} />
       ) : view === "boxscore" && boxScore ? (
         <BoxScore data={boxScore} />
       ) : view === "standings" && standings ? (

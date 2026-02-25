@@ -16,31 +16,41 @@ export interface Game {
   };
 }
 
-export async function fetchScoreboard(): Promise<Game[]> {
-  const url =
-    "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json";
+function mapStatus(state: string): number {
+  if (state === "pre") return 1;
+  if (state === "in") return 2;
+  return 3; // post
+}
 
-  const { data } = await axios.get(url, {
-    headers: {
-      Accept: "application/json",
-    },
+export async function fetchScoreboard(date?: string): Promise<Game[]> {
+  let url =
+    "https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard";
+  if (date) {
+    url += `?dates=${date}`;
+  }
+
+  const { data } = await axios.get(url);
+
+  return data.events.map((ev: any) => {
+    const comp = ev.competitions[0];
+    const home = comp.competitors.find((c: any) => c.homeAway === "home");
+    const away = comp.competitors.find((c: any) => c.homeAway === "away");
+    const status = ev.status;
+
+    return {
+      gameId: ev.id,
+      gameStatusText: status.type?.shortDetail ?? status.type?.description ?? "",
+      gameStatus: mapStatus(status.type?.state ?? "post"),
+      homeTeam: {
+        teamTricode: home.team.abbreviation,
+        teamName: home.team.displayName,
+        score: parseInt(home.score ?? "0", 10),
+      },
+      awayTeam: {
+        teamTricode: away.team.abbreviation,
+        teamName: away.team.displayName,
+        score: parseInt(away.score ?? "0", 10),
+      },
+    };
   });
-
-  const games = data.scoreboard.games;
-
-  return games.map((g: any) => ({
-    gameId: g.gameId,
-    gameStatusText: g.gameStatusText?.trim() ?? "",
-    gameStatus: g.gameStatus,
-    homeTeam: {
-      teamTricode: g.homeTeam.teamTricode,
-      teamName: g.homeTeam.teamName,
-      score: g.homeTeam.score,
-    },
-    awayTeam: {
-      teamTricode: g.awayTeam.teamTricode,
-      teamName: g.awayTeam.teamName,
-      score: g.awayTeam.score,
-    },
-  }));
 }

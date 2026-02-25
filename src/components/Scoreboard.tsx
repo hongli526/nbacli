@@ -5,6 +5,7 @@ import type { Game } from "../api/scoreboard.js";
 interface Props {
   games: Game[];
   selectedIndex: number;
+  dateLabel?: string;
 }
 
 function statusColor(status: number): string {
@@ -18,20 +19,21 @@ function statusColor(status: number): string {
   }
 }
 
-export function Scoreboard({ games, selectedIndex }: Props) {
+export function Scoreboard({ games, selectedIndex, dateLabel = "Today" }: Props) {
   if (games.length === 0) {
     return (
       <Box padding={1}>
-        <Text dimColor>No games today.</Text>
+        <Text dimColor>No games for {dateLabel}.</Text>
       </Box>
     );
   }
 
   return (
     <Box flexDirection="column" padding={1}>
-      <Text bold underline>
-        {"Today's Games"}
-      </Text>
+      <Box>
+        <Text bold underline>Games — {dateLabel}</Text>
+        <Text dimColor>  (H/L: prev/next day)</Text>
+      </Box>
       <Text> </Text>
       {games.map((game, i) => {
         const isSelected = i === selectedIndex;

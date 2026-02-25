@@ -9,6 +9,8 @@ interface UseVimOptions {
   onRefresh?: () => void;
   onToggleAutoRefresh?: () => void;
   onToggleHelp?: () => void;
+  onPrevDay?: () => void;
+  onNextDay?: () => void;
   onViewChange?: (view: string) => void;
   isActive?: boolean;
 }
@@ -21,6 +23,8 @@ export function useVim({
   onRefresh,
   onToggleAutoRefresh,
   onToggleHelp,
+  onPrevDay,
+  onNextDay,
   onViewChange,
   isActive = true,
 }: UseVimOptions) {
@@ -50,6 +54,13 @@ export function useVim({
       // Go back
       if (input === "h") {
         onBack?.();
+      }
+
+      // Day navigation
+      if (input === "H") {
+        onPrevDay?.();
+      } else if (input === "L") {
+        onNextDay?.();
       }
 
       // View switching

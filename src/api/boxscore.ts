@@ -26,51 +26,54 @@ export interface BoxScoreData {
   gameStatusText: string;
 }
 
-const STATS_HEADERS = {
-  Referer: "https://www.nba.com/",
-  "User-Agent":
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko)",
-  Accept: "application/json",
-};
+// ESPN labels: MIN, PTS, FG, 3PT, FT, REB, AST, TO, STL, BLK, OREB, DREB, PF, +/-
+function parsePlayer(athlete: any, stats: string[]): PlayerStats {
+  return {
+    name: athlete.displayName ?? "",
+    min: stats[0] ?? "0",
+    pts: parseInt(stats[1] ?? "0", 10),
+    fg: stats[2] ?? "0-0",
+    threes: stats[3] ?? "0-0",
+    ft: stats[4] ?? "0-0",
+    reb: parseInt(stats[5] ?? "0", 10),
+    ast: parseInt(stats[6] ?? "0", 10),
+    stl: parseInt(stats[8] ?? "0", 10),
+    blk: parseInt(stats[9] ?? "0", 10),
+    plusMinus: parseInt(stats[13] ?? "0", 10),
+  };
+}
 
 export async function fetchBoxScore(gameId: string): Promise<BoxScoreData> {
-  const url = `https://cdn.nba.com/static/json/liveData/boxscore/boxscore_${gameId}.json`;
+  const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=${gameId}`;
 
-  const { data } = await axios.get(url, { headers: STATS_HEADERS });
+  const { data } = await axios.get(url);
 
-  const game = data.game;
+  const boxscore = data.boxscore;
+  const header = data.header;
 
-  const mapPlayers = (players: any[]): PlayerStats[] =>
-    players
-      .filter((p: any) => p.status === "ACTIVE" && p.statistics)
-      .map((p: any) => {
-        const s = p.statistics;
-        return {
-          name: `${p.firstName} ${p.familyName}`,
-          min: s.minutesCalculated?.replace("PT", "").replace("M", "") ?? "0",
-          pts: s.points ?? 0,
-          reb: s.reboundsTotal ?? 0,
-          ast: s.assists ?? 0,
-          stl: s.steals ?? 0,
-          blk: s.blocks ?? 0,
-          fg: `${s.fieldGoalsMade ?? 0}-${s.fieldGoalsAttempted ?? 0}`,
-          threes: `${s.threePointersMade ?? 0}-${s.threePointersAttempted ?? 0}`,
-          ft: `${s.freeThrowsMade ?? 0}-${s.freeThrowsAttempted ?? 0}`,
-          plusMinus: s.plusMinusPoints ?? 0,
-        };
-      });
+  const statusText =
+    header?.competitions?.[0]?.status?.type?.shortDetail ?? "";
+
+  const mapTeam = (teamData: any): TeamBoxScore => {
+    const team = teamData.team;
+    const athletes = teamData.statistics[0]?.athletes ?? [];
+    return {
+      teamTricode: team.abbreviation ?? "",
+      teamName: team.displayName ?? "",
+      players: athletes.map((a: any) =>
+        parsePlayer(a.athlete, a.stats),
+      ),
+    };
+  };
+
+  // boxscore.players[0] is away, [1] is home (by displayOrder)
+  const sorted = [...boxscore.players].sort(
+    (a: any, b: any) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0),
+  );
 
   return {
-    homeTeam: {
-      teamTricode: game.homeTeam.teamTricode,
-      teamName: game.homeTeam.teamName,
-      players: mapPlayers(game.homeTeam.players),
-    },
-    awayTeam: {
-      teamTricode: game.awayTeam.teamTricode,
-      teamName: game.awayTeam.teamName,
-      players: mapPlayers(game.awayTeam.players),
-    },
-    gameStatusText: game.gameStatusText?.trim() ?? "",
+    awayTeam: mapTeam(sorted[0]),
+    homeTeam: mapTeam(sorted[1]),
+    gameStatusText: statusText,
   };
 }
