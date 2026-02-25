@@ -13,6 +13,7 @@ interface UseVimOptions {
   onNextDay?: () => void;
   onToday?: () => void;
   onSearch?: () => void;
+  onClearSearch?: () => void;
   onViewChange?: (view: string) => void;
   isActive?: boolean;
 }
@@ -29,6 +30,7 @@ export function useVim({
   onNextDay,
   onToday,
   onSearch,
+  onClearSearch,
   onViewChange,
   isActive = true,
 }: UseVimOptions) {
@@ -94,6 +96,8 @@ export function useVim({
       // Search
       if (input === "/") {
         onSearch?.();
+      } else if (key.escape) {
+        onClearSearch?.();
       }
 
       // Quit
