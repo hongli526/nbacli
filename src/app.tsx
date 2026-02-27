@@ -266,4 +266,10 @@ function App() {
   );
 }
 
+// Enter alternate screen buffer so the terminal is clean after exit
+process.stdout.write("\x1b[?1049h");
+process.on("exit", () => {
+  process.stdout.write("\x1b[?1049l");
+});
+
 render(<App />);
