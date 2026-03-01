@@ -4,4 +4,5 @@ dist/
 *.d.ts
 *.js.map
 !tsconfig.json
-debug.log
+*.log
+CLAUDE.md
