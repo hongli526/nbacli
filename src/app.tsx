@@ -187,8 +187,10 @@ function App() {
       }
     },
     onClearSearch: () => {
-      setSearchQuery("");
-      setSelectedIndex(0);
+      if (searchQuery) {
+        setSearchQuery("");
+        setSelectedIndex(0);
+      }
     },
     onRefresh: refresh,
     onToggleAutoRefresh: toggleAutoRefresh,
