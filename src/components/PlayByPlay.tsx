@@ -32,13 +32,15 @@ export function PlayByPlay({ plays, awayTricode, homeTricode, scrollOffset, game
         <Text bold>
           {"QTR".padEnd(5)}
           {"TIME".padEnd(8)}
+          {"SCORE".padEnd(10)}
           {"PLAY"}
         </Text>
       </Box>
-      <Text dimColor>{"─".repeat(70)}</Text>
+      <Text dimColor>{"─".repeat(80)}</Text>
       {visible.map((play) => {
         const qtr = play.period <= 4 ? `Q${play.period}` : `OT${play.period - 4}`;
-        const line = `${qtr.padEnd(5)}${play.clock.padEnd(8)}${play.text}`;
+        const score = `${play.awayScore}-${play.homeScore}`;
+        const line = `${qtr.padEnd(5)}${play.clock.padEnd(8)}${score.padEnd(10)}${play.text}`;
 
         if (play.scoringPlay) {
           return (

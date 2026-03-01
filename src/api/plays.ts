@@ -24,7 +24,7 @@ export async function fetchPlays(gameId: string): Promise<PlayEvent[]> {
     id: String(p.id ?? ""),
     clock: p.clock?.displayValue ?? "",
     period: p.period?.number ?? 0,
-    text: p.text ?? "",
+    text: (p.text ?? "").replace(/\n/g, " "),
     awayScore: parseInt(p.awayScore ?? "0", 10),
     homeScore: parseInt(p.homeScore ?? "0", 10),
     scoringPlay: p.scoringPlay ?? false,
