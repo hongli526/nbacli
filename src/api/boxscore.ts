@@ -18,6 +18,8 @@ export interface TeamBoxScore {
   teamTricode: string;
   teamName: string;
   players: PlayerStats[];
+  score: number;
+  totals: PlayerStats;
 }
 
 export interface BoxScoreData {
@@ -54,15 +56,34 @@ export async function fetchBoxScore(gameId: string): Promise<BoxScoreData> {
   const statusText =
     header?.competitions?.[0]?.status?.type?.shortDetail ?? "";
 
-  const mapTeam = (teamData: any): TeamBoxScore => {
+  const competitors = [...(header?.competitions?.[0]?.competitors ?? [])].sort(
+    (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0),
+  );
+
+  const mapTeam = (teamData: any, competitor: any): TeamBoxScore => {
     const team = teamData.team;
     const athletes = teamData.statistics[0]?.athletes ?? [];
+    const totalsRaw: string[] = teamData.statistics[0]?.totals ?? [];
     return {
       teamTricode: team.abbreviation ?? "",
       teamName: team.displayName ?? "",
       players: athletes.map((a: any) =>
         parsePlayer(a.athlete, a.stats),
       ),
+      score: parseInt(competitor?.score ?? "0", 10),
+      totals: {
+        name: "TOTAL",
+        min: totalsRaw[0] ?? "0",
+        pts: parseInt(totalsRaw[1] ?? "0", 10),
+        fg: totalsRaw[2] ?? "0-0",
+        threes: totalsRaw[3] ?? "0-0",
+        ft: totalsRaw[4] ?? "0-0",
+        reb: parseInt(totalsRaw[5] ?? "0", 10),
+        ast: parseInt(totalsRaw[6] ?? "0", 10),
+        stl: parseInt(totalsRaw[8] ?? "0", 10),
+        blk: parseInt(totalsRaw[9] ?? "0", 10),
+        plusMinus: parseInt(totalsRaw[13] ?? "0", 10),
+      },
     };
   };
 
@@ -72,8 +93,8 @@ export async function fetchBoxScore(gameId: string): Promise<BoxScoreData> {
   );
 
   return {
-    awayTeam: mapTeam(sorted[0]),
-    homeTeam: mapTeam(sorted[1]),
+    awayTeam: mapTeam(sorted[0], competitors[0]),
+    homeTeam: mapTeam(sorted[1], competitors[1]),
     gameStatusText: statusText,
   };
 }

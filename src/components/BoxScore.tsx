@@ -1,6 +1,6 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { BoxScoreData } from "../api/boxscore.js";
+import type { BoxScoreData, PlayerStats } from "../api/boxscore.js";
 
 interface Props {
   data: BoxScoreData;
@@ -9,9 +9,11 @@ interface Props {
 function PlayerTable({
   teamTricode,
   players,
+  totals,
 }: {
   teamTricode: string;
   players: BoxScoreData["homeTeam"]["players"];
+  totals: PlayerStats;
 }) {
   const nameW = 22;
   const colW = 6;
@@ -55,6 +57,22 @@ function PlayerTable({
           </Text>
         </Box>
       ))}
+      <Text dimColor>{"─".repeat(nameW + colW * 7 + shotW * 3)}</Text>
+      <Box>
+        <Text bold>
+          {totals.name.padEnd(nameW)}
+          {totals.min.padStart(colW)}
+          {String(totals.pts).padStart(colW)}
+          {String(totals.reb).padStart(colW)}
+          {String(totals.ast).padStart(colW)}
+          {String(totals.stl).padStart(colW)}
+          {String(totals.blk).padStart(colW)}
+          {totals.fg.padStart(shotW)}
+          {totals.threes.padStart(shotW)}
+          {totals.ft.padStart(shotW)}
+          {"".padStart(colW)}
+        </Text>
+      </Box>
     </Box>
   );
 }
@@ -65,15 +83,20 @@ export function BoxScore({ data }: Props) {
       <Text bold underline>
         Box Score — {data.gameStatusText}
       </Text>
+      <Text bold>
+        {`${data.awayTeam.teamTricode} ${data.awayTeam.score}  @  ${data.homeTeam.teamTricode} ${data.homeTeam.score}`}
+      </Text>
       <Text> </Text>
       <PlayerTable
         teamTricode={data.awayTeam.teamTricode}
         players={data.awayTeam.players}
+        totals={data.awayTeam.totals}
       />
       <Text> </Text>
       <PlayerTable
         teamTricode={data.homeTeam.teamTricode}
         players={data.homeTeam.players}
+        totals={data.homeTeam.totals}
       />
     </Box>
   );
