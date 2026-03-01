@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState } from "react";
 import { useInput } from "ink";
 
 interface UseVimOptions {
@@ -36,20 +36,15 @@ export function useVim({
 }: UseVimOptions) {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
-  const clamp = useCallback(
-    (idx: number) => Math.max(0, Math.min(idx, listLength - 1)),
-    [listLength],
-  );
-
   useInput(
     (input, key) => {
       if (!isActive) return;
 
-      // Navigation
+      // Navigation (wrap around)
       if (input === "j" || key.downArrow) {
-        setSelectedIndex((i) => clamp(i + 1));
+        setSelectedIndex((i) => (i + 1) % listLength);
       } else if (input === "k" || key.upArrow) {
-        setSelectedIndex((i) => clamp(i - 1));
+        setSelectedIndex((i) => (i - 1 + listLength) % listLength);
       }
 
       // Select / drill in
