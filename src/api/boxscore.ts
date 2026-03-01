@@ -56,12 +56,16 @@ export async function fetchBoxScore(gameId: string): Promise<BoxScoreData> {
   const statusText =
     header?.competitions?.[0]?.status?.type?.shortDetail ?? "";
 
-  const competitors = [...(header?.competitions?.[0]?.competitors ?? [])].sort(
-    (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0),
+  const competitors: any[] =
+    header?.competitions?.[0]?.competitors ?? [];
+
+  const competitorById = new Map(
+    competitors.map((c: any) => [String(c.id), c]),
   );
 
-  const mapTeam = (teamData: any, competitor: any): TeamBoxScore => {
+  const mapTeam = (teamData: any): TeamBoxScore => {
     const team = teamData.team;
+    const competitor = competitorById.get(String(team.id));
     const athletes = teamData.statistics[0]?.athletes ?? [];
     const totalsRaw: string[] = teamData.statistics[0]?.totals ?? [];
     return {
@@ -93,8 +97,8 @@ export async function fetchBoxScore(gameId: string): Promise<BoxScoreData> {
   );
 
   return {
-    awayTeam: mapTeam(sorted[0], competitors[0]),
-    homeTeam: mapTeam(sorted[1], competitors[1]),
+    awayTeam: mapTeam(sorted[0]),
+    homeTeam: mapTeam(sorted[1]),
     gameStatusText: statusText,
   };
 }
