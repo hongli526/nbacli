@@ -15,6 +15,7 @@ interface UseVimOptions {
   onSearch?: () => void;
   onClearSearch?: () => void;
   onViewChange?: (view: string) => void;
+  onPlays?: () => void;
   isActive?: boolean;
 }
 
@@ -32,6 +33,7 @@ export function useVim({
   onSearch,
   onClearSearch,
   onViewChange,
+  onPlays,
   isActive = true,
 }: UseVimOptions) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -71,6 +73,11 @@ export function useVim({
         onViewChange?.("scoreboard");
       } else if (input === "2") {
         onViewChange?.("standings");
+      }
+
+      // Play-by-play toggle
+      if (input === "p") {
+        onPlays?.();
       }
 
       // Toggle auto-refresh

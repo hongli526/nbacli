@@ -1,4 +1,5 @@
 import axios from "axios";
+import { log } from "../utils/logger.js";
 
 export interface TeamStanding {
   rank: number;
@@ -52,6 +53,7 @@ export async function fetchStandings(): Promise<StandingsData> {
   const url =
     "https://site.api.espn.com/apis/v2/sports/basketball/nba/standings";
 
+  log(`FETCH standings ${url}`);
   const { data } = await axios.get(url);
 
   const conferences = data.children;

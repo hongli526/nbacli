@@ -2,21 +2,27 @@ import React, { useState, useEffect, useCallback } from "react";
 import { render, Box, Text, useApp, useInput } from "ink";
 import { Scoreboard } from "./components/Scoreboard.js";
 import { BoxScore } from "./components/BoxScore.js";
+import { PlayByPlay } from "./components/PlayByPlay.js";
 import { Standings } from "./components/Standings.js";
 import { fetchScoreboard, type Game } from "./api/scoreboard.js";
 import { fetchBoxScore, type BoxScoreData } from "./api/boxscore.js";
+import { fetchPlays, type PlayEvent } from "./api/plays.js";
 import { fetchStandings, type StandingsData } from "./api/standings.js";
 import { useAutoRefresh } from "./hooks/useAutoRefresh.js";
 import { useVim } from "./hooks/useVim.js";
 
-type View = "scoreboard" | "boxscore" | "standings";
+type View = "scoreboard" | "game" | "standings";
+type GameView = "boxscore" | "plays";
 
 function App() {
   const { exit } = useApp();
   const [view, setView] = useState<View>("scoreboard");
+  const [gameView, setGameView] = useState<GameView>("boxscore");
   const [showHelp, setShowHelp] = useState(false);
   const [games, setGames] = useState<Game[]>([]);
   const [boxScore, setBoxScore] = useState<BoxScoreData | null>(null);
+  const [plays, setPlays] = useState<PlayEvent[] | null>(null);
+  const [playsScrollOffset, setPlaysScrollOffset] = useState(0);
   const [standings, setStandings] = useState<StandingsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,9 +30,38 @@ function App() {
   const [dateOffset, setDateOffset] = useState(0);
   const [searchMode, setSearchMode] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [gameLastUpdated, setGameLastUpdated] = useState<Date>(new Date());
 
+  // Auto-refresh for scoreboard/standings only (user-controlled via '3')
   const { lastUpdated, tick, refresh, autoRefreshEnabled, toggleAutoRefresh } =
     useAutoRefresh(30000);
+
+  // Load both box score and plays (used for initial game select)
+  const loadGameData = useCallback(async (gameId: string) => {
+    const [boxData, playsData] = await Promise.all([
+      fetchBoxScore(gameId),
+      fetchPlays(gameId),
+    ]);
+    setBoxScore(boxData);
+    setPlays(playsData);
+    setGameLastUpdated(new Date());
+  }, []);
+
+  // Load only plays (used for 10s auto-refresh in PBP view)
+  const refreshPlays = useCallback(async (gameId: string) => {
+    const playsData = await fetchPlays(gameId);
+    setPlays(playsData);
+    setGameLastUpdated(new Date());
+  }, []);
+
+  // Always-on 10s auto-refresh for PBP view only
+  useEffect(() => {
+    if (view !== "game" || gameView !== "plays" || !selectedGameId) return;
+    const id = setInterval(() => {
+      if (selectedGameId) refreshPlays(selectedGameId);
+    }, 10000);
+    return () => clearInterval(id);
+  }, [view, gameView, selectedGameId, refreshPlays]);
 
   // NBA dates are in US Eastern time
   const getETDate = useCallback((offset: number) => {
@@ -65,19 +100,6 @@ function App() {
     }
   }, [getDateStr]);
 
-  const loadBoxScore = useCallback(async (gameId: string) => {
-    try {
-      setError(null);
-      setLoading(true);
-      const data = await fetchBoxScore(gameId);
-      setBoxScore(data);
-    } catch (e: any) {
-      setError(`Failed to load box score: ${e.message}`);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   const loadStandings = useCallback(async () => {
     try {
       setError(null);
@@ -92,15 +114,21 @@ function App() {
   }, []);
 
   // Load data based on current view
+  // tick drives scoreboard/standings refresh; game view has its own interval
   useEffect(() => {
     if (view === "scoreboard") {
       loadScoreboard(dateOffset);
     } else if (view === "standings") {
       loadStandings();
-    } else if (view === "boxscore" && selectedGameId) {
-      loadBoxScore(selectedGameId);
+    } else if (view === "game" && selectedGameId) {
+      // Initial load only (auto-refresh handled by separate interval)
+      setLoading(true);
+      setError(null);
+      loadGameData(selectedGameId)
+        .catch((e: any) => setError(`Failed to load game data: ${e.message}`))
+        .finally(() => setLoading(false));
     }
-  }, [view, tick, dateOffset, selectedGameId, loadScoreboard, loadStandings, loadBoxScore]);
+  }, [view, tick, dateOffset, selectedGameId, loadScoreboard, loadStandings, loadGameData]);
 
   const filteredGames = searchQuery
     ? games.filter((g) => {
@@ -113,6 +141,8 @@ function App() {
         );
       })
     : games;
+
+  const inPlaysView = view === "game" && gameView === "plays";
 
   const listLength =
     view === "scoreboard" ? filteredGames.length : 0;
@@ -137,6 +167,33 @@ function App() {
     { isActive: searchMode },
   );
 
+  // Plays view scroll handler (clamped, not wrapping)
+  useInput(
+    (input, key) => {
+      if (!plays) return;
+      const termRows = process.stdout.rows ?? 24;
+      const visibleRows = Math.max(termRows - 10, 5);
+      const maxOffset = Math.max(plays.length - visibleRows, 0);
+      if (input === "j" || key.downArrow) {
+        setPlaysScrollOffset((o) => Math.min(o + 1, maxOffset));
+      } else if (input === "k" || key.upArrow) {
+        setPlaysScrollOffset((o) => Math.max(o - 1, 0));
+      } else if (input === "g") {
+        setPlaysScrollOffset(0);
+      } else if (input === "G") {
+        setPlaysScrollOffset(maxOffset);
+      }
+    },
+    { isActive: inPlaysView && !searchMode },
+  );
+
+  const refreshAll = useCallback(() => {
+    refresh();
+    if (view === "game" && selectedGameId) {
+      loadGameData(selectedGameId);
+    }
+  }, [refresh, view, selectedGameId, loadGameData]);
+
   const { selectedIndex, setSelectedIndex } = useVim({
     listLength,
     isActive: !searchMode,
@@ -147,13 +204,16 @@ function App() {
           setSelectedGameId(game.gameId);
           setSearchMode(false);
           setSearchQuery("");
-          setView("boxscore");
+          setGameView("boxscore");
+          setPlaysScrollOffset(0);
+          setView("game");
         }
       }
     },
     onBack: () => {
-      if (view === "boxscore") {
+      if (view === "game") {
         setBoxScore(null);
+        setPlays(null);
         setSelectedGameId(null);
         setView("scoreboard");
       }
@@ -161,6 +221,16 @@ function App() {
     onViewChange: (v) => {
       if (v === "scoreboard" || v === "standings") {
         setView(v);
+      }
+    },
+    onPlays: () => {
+      if (view === "game") {
+        if (gameView === "plays") {
+          setGameView("boxscore");
+        } else {
+          setGameView("plays");
+          setPlaysScrollOffset(0);
+        }
       }
     },
     onPrevDay: () => {
@@ -192,13 +262,13 @@ function App() {
         setSelectedIndex(0);
       }
     },
-    onRefresh: refresh,
+    onRefresh: refreshAll,
     onToggleAutoRefresh: toggleAutoRefresh,
     onToggleHelp: () => setShowHelp((v) => !v),
     onQuit: () => exit(),
   });
 
-  const timeStr = lastUpdated.toLocaleTimeString();
+  const timeStr = (view === "game" ? gameLastUpdated : lastUpdated).toLocaleTimeString();
 
   return (
     <Box flexDirection="column">
@@ -210,7 +280,16 @@ function App() {
         <Text dimColor>
           {"  "}[<Text color={view === "scoreboard" ? "cyan" : undefined}>1:Scores</Text>]
           {"  "}[<Text color={view === "standings" ? "cyan" : undefined}>2:Standings</Text>]
-          {"  "}[3:Auto-refresh <Text color={autoRefreshEnabled ? "green" : "red"}>{autoRefreshEnabled ? "ON" : "OFF"}</Text>]
+          {view === "game" && (
+            <>
+              {"  "}[<Text color={gameView === "plays" ? "cyan" : undefined}>P:Plays</Text>]
+            </>
+          )}
+          {view !== "game" && (
+            <>
+              {"  "}[3:Auto-refresh <Text color={autoRefreshEnabled ? "green" : "red"}>{autoRefreshEnabled ? "ON" : "OFF"}</Text>]
+            </>
+          )}
           {"  "}[?:Help]
         </Text>
       </Box>
@@ -222,12 +301,13 @@ function App() {
           <Text>  <Text bold>j/k</Text>    Navigate up/down</Text>
           <Text>  <Text bold>Enter/l</Text> Select / drill in</Text>
           <Text>  <Text bold>h</Text>       Go back</Text>
+          <Text>  <Text bold>p</Text>       Toggle play-by-play (in game view)</Text>
           <Text>  <Text bold>H/L</Text>    Previous/next day</Text>
           <Text>  <Text bold>t</Text>      {"Today's scores"}</Text>
           <Text>  <Text bold>/</Text>      Search games (Esc to clear)</Text>
           <Text>  <Text bold>1</Text>       Scores view</Text>
           <Text>  <Text bold>2</Text>       Standings view</Text>
-          <Text>  <Text bold>3</Text>       Toggle auto-refresh</Text>
+          <Text>  <Text bold>3</Text>       Toggle auto-refresh (scores/standings)</Text>
           <Text>  <Text bold>r</Text>       Manual refresh</Text>
           <Text>  <Text bold>?</Text>       Toggle this help</Text>
           <Text>  <Text bold>q</Text>       Quit</Text>
@@ -242,8 +322,16 @@ function App() {
         </Box>
       ) : view === "scoreboard" ? (
         <Scoreboard games={filteredGames} selectedIndex={selectedIndex} dateLabel={getDisplayDate(dateOffset)} />
-      ) : view === "boxscore" && boxScore ? (
+      ) : view === "game" && gameView === "boxscore" && boxScore ? (
         <BoxScore data={boxScore} />
+      ) : view === "game" && gameView === "plays" && plays && boxScore ? (
+        <PlayByPlay
+          plays={plays}
+          awayTricode={boxScore.awayTeam.teamTricode}
+          homeTricode={boxScore.homeTeam.teamTricode}
+          scrollOffset={playsScrollOffset}
+          gameStatusText={boxScore.gameStatusText}
+        />
       ) : view === "standings" && standings ? (
         <Standings data={standings} />
       ) : null}

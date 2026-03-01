@@ -1,4 +1,5 @@
 import axios from "axios";
+import { log } from "../utils/logger.js";
 
 export interface Game {
   gameId: string;
@@ -29,6 +30,7 @@ export async function fetchScoreboard(date?: string): Promise<Game[]> {
     url += `?dates=${date}`;
   }
 
+  log(`FETCH scoreboard ${url}`);
   const { data } = await axios.get(url);
 
   return data.events.map((ev: any) => {

@@ -1,4 +1,5 @@
 import axios from "axios";
+import { log } from "../utils/logger.js";
 
 export interface PlayerStats {
   name: string;
@@ -48,6 +49,7 @@ function parsePlayer(athlete: any, stats: string[]): PlayerStats {
 export async function fetchBoxScore(gameId: string): Promise<BoxScoreData> {
   const url = `https://site.api.espn.com/apis/site/v2/sports/basketball/nba/summary?event=${gameId}`;
 
+  log(`FETCH boxscore ${url}`);
   const { data } = await axios.get(url);
 
   const boxscore = data.boxscore;
